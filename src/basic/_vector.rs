@@ -1,6 +1,7 @@
 use crate::matrix::Matrix;
 use rand::Rng;
 
+#[derive(Clone)]
 pub struct Vector {
     pub entries: Vec<f64>,
     pub size: usize,
@@ -21,8 +22,11 @@ impl Vector {
 
         for s in 0..self.size {
             result_vector.entries[s] = (scale * self.entries[s]).round();
+            
             if result_vector.entries[s] >= 1.0 || result_vector.entries[s] <= -1.0 {
                 result_vector.entries[s] /= scale;
+            } else if result_vector.entries[s].is_nan() {
+                    continue;
             } else {
                 result_vector.entries[s] = 0.0;
             }
@@ -80,7 +84,7 @@ impl Vector {
         }
     }
 
-    pub fn copy(self: &Self) -> Vector {
+    pub fn clone(self: &Self) -> Vector {
         Vector {
             entries: self.entries.clone(),
             size: self.size,
@@ -108,7 +112,7 @@ impl Vector {
             return Err("Input Error: The input a or b is out of bound.".to_string());
         }
 
-        let mut result_Vector = self.copy();
+        let mut result_Vector = self.clone();
         result_Vector.entries[a] = self.entries[b];
         result_Vector.entries[b] = self.entries[a];
 
@@ -121,7 +125,7 @@ impl Vector {
             return Err("Input Error: The size of input vector does not match.".to_string());
         }
 
-        let mut result_vector = self.copy();
+        let mut result_vector = self.clone();
         for s in 0..self.size {
             result_vector.entries[s] += vector.entries[s];
         }
@@ -135,7 +139,7 @@ impl Vector {
             return Err("Input Error: The size of input vector does not match.".to_string());
         }
 
-        let mut result_vector = self.copy();
+        let mut result_vector = self.clone();
         for s in 0..self.size {
             result_vector.entries[s] -= vector.entries[s];
         }

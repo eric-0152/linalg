@@ -1,7 +1,7 @@
 use crate::vector::Vector;
-use crate::decomposition;
 use rand::{self, Rng};
 
+#[derive(Clone)]
 pub struct Matrix {
     pub entries: Vec<Vec<f64>>,
     pub row: usize,
@@ -61,14 +61,17 @@ impl Matrix {
 
     /// Return the matrix that round to the digit after decimal point.
     pub fn round(self: &Self, digit: u32) -> Matrix{
-        let mut result_matrix = self.copy();
+        let mut result_matrix = self.clone();
         let scale: f64 = 10_i32.pow(digit as u32) as f64;
         for r in 0..self.row {
             for c in 0..self.col {
                 // result_matrix.entries[r][c] = (scale * result_matrix.entries[r][c]).round() / scale;
                 result_matrix.entries[r][c] = (scale * result_matrix.entries[r][c]).round();
+                
                 if result_matrix.entries[r][c] >= 1.0 || result_matrix.entries[r][c] <= -1.0 {
                     result_matrix.entries[r][c] /= scale;
+                } else if result_matrix.entries[r][c].is_nan() {
+                    continue;
                 } else {
                     result_matrix.entries[r][c] = 0.0;
                 }
@@ -141,6 +144,32 @@ impl Matrix {
         result_matrix
     }
 
+        /// Return the upper triangular matrix or self.
+    pub fn random_upper_triangular(m: usize, n: usize, min: f64, max: f64) -> Matrix {
+        let mut result_matrix: Matrix = Self::zeros(m, n);
+        let mut generator:rand::prelude::ThreadRng  = rand::rng();
+        for r in 0..m {
+            for c in r..n {
+                result_matrix.entries[r][c] = generator.random_range(min..max);
+            } 
+        } 
+
+        result_matrix
+    }
+    
+    /// Return the lower triangular matrix or self.
+    pub fn random_lower_triangular(m: usize, n: usize, min: f64, max: f64) -> Matrix {
+        let mut result_matrix: Matrix = Self::zeros(m, n);
+        let mut generator:rand::prelude::ThreadRng  = rand::rng();
+        for r in 0..m {
+            for c in 0..(r + 1).min(n) {
+                result_matrix.entries[r][c] = generator.random_range(min..max);
+            } 
+        } 
+
+        result_matrix
+    }
+
     pub fn random_diagonal_matrix(m: usize, min: f64, max: f64) -> Matrix {
         let mut result_matrix: Matrix = Self::zeros(m, m);
         let mut generator:rand::prelude::ThreadRng  = rand::rng();
@@ -162,14 +191,6 @@ impl Matrix {
         } 
         
         result_matrix
-    }
-
-    pub fn copy(self: &Self) -> Matrix {
-        Matrix {
-            entries: self.entries.clone(),
-            row: self.row,
-            col: self.col,
-        }
     }
 
     /// Sum up all the entries in matrix.
@@ -200,7 +221,7 @@ impl Matrix {
             return Err("Input Error: The size of input matrix does not match.".to_string());
         }
 
-        let mut result_matrix = self.copy();
+        let mut result_matrix = self.clone();
         for r in 0..self.row {
             for c in 0..self.col {
                 result_matrix.entries[r][c] += matrix.entries[r][c];
@@ -216,7 +237,7 @@ impl Matrix {
             return Err("Input Error: The size of input matrix does not match.".to_string());
         }
 
-        let mut result_matrix = self.copy();
+        let mut result_matrix = self.clone();
         for r in 0..self.row {
             for c in 0..self.col {
                 result_matrix.entries[r][c] -= matrix.entries[r][c];
@@ -290,7 +311,7 @@ impl Matrix {
                     );
                 }
 
-                let mut result_matrix: Matrix = self.copy();
+                let mut result_matrix: Matrix = self.clone();
                 result_matrix.entries.push(vector.entries.clone());
                 result_matrix.row += 1;
 
@@ -305,7 +326,7 @@ impl Matrix {
                     );
                 }
 
-                let mut result_matrix: Matrix = self.copy();
+                let mut result_matrix: Matrix = self.clone();
                 for e in 0..vector.size {
                     result_matrix.entries[e].push(vector.entries[e]);
                 }
@@ -332,7 +353,7 @@ impl Matrix {
                     return Err("Input Error: The size of row does not match .".to_string());
                 }
 
-                let mut result_matrix: Matrix = self.copy();
+                let mut result_matrix: Matrix = self.clone();
                 for r in 0..matrix.row {
                     result_matrix.entries.push(matrix.entries[r].clone());
                 }
@@ -346,7 +367,7 @@ impl Matrix {
                     return Err("Input Error: The size of column does not match .".to_string());
                 }
 
-                let mut result_matrix: Matrix = self.copy();
+                let mut result_matrix: Matrix = self.clone();
                 for r in 0..matrix.row {
                     for c in 0..matrix.col {
                         result_matrix.entries[r].push(matrix.entries[r][c]);
@@ -409,7 +430,7 @@ impl Matrix {
             return Err("Input Error: Input row is out of bound".to_string());
         }
 
-        let mut result_matrix = self.copy();
+        let mut result_matrix = self.clone();
         result_matrix.row -= 1;
         result_matrix.entries.remove(row);
 
@@ -426,7 +447,7 @@ impl Matrix {
             return Err("Input Error: Input col is out of bound".to_string());
         }
 
-        let mut result_matrix = self.copy();
+        let mut result_matrix = self.clone();
         result_matrix.col -= 1;
         for r in 0..self.row {
             result_matrix.entries[r].remove(col);
@@ -439,7 +460,7 @@ impl Matrix {
         if row1 >= self.row || row2 >= self.row {
             return Err("Input Error: Input row1 or row2 is out of bound".to_string());
         }
-        let mut result_matrix: Matrix = self.copy();
+        let mut result_matrix: Matrix = self.clone();
         result_matrix.entries[row1] = self.entries[row2].clone();
         result_matrix.entries[row2] = self.entries[row1].clone();
 
@@ -452,7 +473,7 @@ impl Matrix {
         }
 
 
-        let mut result_matrix: Matrix = self.copy();
+        let mut result_matrix: Matrix = self.clone();
         for r in 0..result_matrix.col {
             result_matrix.entries[r][col1] = self.entries[r][col2];
             result_matrix.entries[r][col2] = self.entries[r][col1];
@@ -466,8 +487,8 @@ impl Matrix {
         if self.row != permutation.row {
             return Err("Input Error: The row size of permutation matrix does not match".to_string());
         }
-        let mut result_matrix = self.copy();
-        let mut order  = permutation.copy();
+        let mut result_matrix = self.clone();
+        let mut order  = permutation.clone();
         for r in 0..order.row {
             if order.entries[r][r] != 1.0 {
                 for bottom_r in (r + 1)..order.row {
@@ -482,49 +503,50 @@ impl Matrix {
         Ok(result_matrix)
     }
 
-    /// Return the upper triangular matrix or self.
-    pub fn upper_triangular(self: &Self) -> Matrix {
-        let mut result_matrix: Matrix = self.copy();
-        for r in 1..self.row {
-            for c in 0..r {
-                result_matrix.entries[r][c] = 0.0;
-            }
-        }
-
-        result_matrix
-    }
-    
-    /// Return the lower triangular matrix or self.
-    pub fn lower_triangular(self: &Self) -> Matrix {
-        let mut result_matrix: Matrix = self.copy();
-        for r in 0..self.row {
-            for c in (r + 1)..self.col {
-                result_matrix.entries[r][c] = 0.0;
-            }
-        }
-
-        result_matrix
-    }
-
     /// Return 
     pub fn determinant(self: &Self) -> Result<f64, String> {
-        match self.lu_decomposition() {
-            Ok(tuple) => {
-                let matrix_l = tuple.0;
-                let matrix_u = tuple.1;
-                let mut det_l = matrix_l.entries[0][0];
-                let mut det_u = matrix_u.entries[0][0];
-                for r in 1..matrix_l.row {
-                        det_l *= matrix_l.entries[r][r];
-                        det_u *= matrix_u.entries[r][r];
-                }
-
-                Ok(det_l * det_u)
-            }
-            Err(error_msg) => {
-                Err(error_msg)
-            }
+        if !self.is_square() {
+            return Err("Value Error: This matrix is not a square matrix.".to_string());
         }
+
+        let mut matrix_u: Matrix = self.clone();
+        let mut matrix_l = Matrix::zeros(self.row, self.row);
+        let mut permutation = Matrix::identity(self.row);
+        for c in 0..self.col {
+            // If the pivot is 0.0, swap to non zero.
+            let mut is_swap = false;
+            if matrix_u.entries[c][c] == 0.0 {
+                for r in (c + 1)..matrix_u.row {
+                    if matrix_u.entries[r][c] != 0.0 {
+                        matrix_u = matrix_u.swap_row(c, r).unwrap();
+                        matrix_l = matrix_l.swap_row(c, r).unwrap();
+                        permutation = permutation.swap_row(c, r).unwrap();
+                        is_swap = true;
+                        break;
+                    }
+                }
+                if !is_swap {
+                    continue;
+                }
+            }
+
+            for r in (c + 1)..self.row {
+                matrix_l.entries[r][c] = matrix_u.entries[r][c] / matrix_u.entries[c][c]; 
+                for e in 0..self.col {
+                    matrix_u.entries[r][e] -= matrix_l.entries[r][c] * matrix_u.entries[c][e];
+                }  
+            }
+        }    
+        matrix_l = matrix_l.add_Matrix(Matrix::identity(self.row)).unwrap();
+
+        let mut det_l = matrix_l.entries[0][0];
+        let mut det_u = matrix_u.entries[0][0];
+        for r in 1..matrix_l.row {
+            det_l *= matrix_l.entries[r][r];
+            det_u *= matrix_u.entries[r][r];
+        }
+
+        Ok(det_l * det_u)
     }
 
     pub fn adjoint(self: &mut Matrix) -> Matrix {
@@ -562,7 +584,7 @@ impl Matrix {
         
     
         // Get upper triangular form.
-        let mut matrix: Matrix = self.copy();
+        let mut matrix: Matrix = self.clone();
         let mut inverse_matrix: Matrix = Self::identity(self.row);
         for d in 0..matrix.col {
             // If the pivot is 0.0, swap to non zero.
@@ -584,6 +606,18 @@ impl Matrix {
             }
         }
 
+        // To identity
+        for d in  (0..matrix.col).rev() {
+            for r in  (0..d).rev() {
+                let scale = matrix.entries[r][d] / matrix.entries[d][d];
+                matrix.entries[r][d] -= scale * matrix.entries[d][d];
+                for c in 0..inverse_matrix.col {
+                    inverse_matrix.entries[r][c] -= scale * inverse_matrix.entries[d][c];
+                }
+            }
+            
+        }
+
         // Pivots -> 1
         for r in 0..matrix.row {
             for c in r..matrix.col {
@@ -601,18 +635,51 @@ impl Matrix {
             }
         }
         
-        // To identity
-        for d in  (0..matrix.col).rev() {
-            for r in  (0..d).rev() {
-                let scale = matrix.entries[r][d] / matrix.entries[d][d];
-                matrix.entries[r][d] -= scale * matrix.entries[d][d];
-                for c in 0..inverse_matrix.col {
-                    inverse_matrix.entries[r][c] -= scale * inverse_matrix.entries[d][c];
+        Ok(inverse_matrix)
+    }
+
+    pub fn is_square(self: &Self) -> bool {
+        self.row == self.col
+    }
+
+    pub fn is_upper_triangular(self: &Self) -> bool {
+        for r in 1..self.row {
+            for c in 0..r.min(self.col) {
+                if self.entries[r][c] != 0.0 {
+                    return false;
                 }
             }
+        }   
+
+        true
+    }
+
+    pub fn is_lower_triangular(self: &Self) -> bool {
+        for r in 0..self.row.min(self.col) {
+            for c in (r + 1)..self.col {
+                if self.entries[r][c] != 0.0 {
+                    return false;
+                }
+            }
+        }   
+
+        true
+    }
+
+    pub fn is_symmetric(self: &Self) -> bool {
+        if !self.is_square() {
+            return false;
         }
-        
-        Ok(inverse_matrix)
+
+        for r in 0..self.row {
+            for c in (r + 1)..self.col {
+                if self.entries[r][c] != self.entries[c][r] {
+                    return false;
+                } 
+            }
+        }
+
+        true
     }
 
     pub fn is_invertible(self: &Self) -> bool {
@@ -631,7 +698,12 @@ impl Matrix {
         }
     }
 
+    /// Need to Update!
     pub fn is_positive_definite(self: &Self) -> bool {
+        if !self.is_symmetric() {
+            return false;
+        }
+
         for d in 1..self.row {
             if self.entries[d][d - 1].powi(2) >= self.entries[d][d] {
                 return false;
