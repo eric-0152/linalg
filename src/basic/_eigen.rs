@@ -35,43 +35,48 @@ pub fn similar_matrix(matrix: &Matrix) -> Result<Matrix, String> {
     }
 }
 
+fn no_check_similar_matrix(matrix: &Matrix) -> Matrix {
+    let tuple = matrix.qr_decomposition().unwrap();
+    tuple.1.multiply_Matrix(&tuple.0).unwrap()
+}
+
 pub fn shift_qr_algorithm(
     matrix: &Matrix,
     max_iter: u32,
     error_thershold: f64,
 ) -> Result<(Matrix, f64), String> {
     match similar_matrix(matrix) {
-        Ok(mut matrix_s) => {
-            let last_row_idx: usize = matrix_s.row - 1;
-            let last_col_idx: usize = matrix_s.col - 1;
-            let matrix_size: usize = matrix_s.row;
-            let mut last_eigenvalue: f64 = matrix_s.entries[last_row_idx][last_col_idx];
+        Ok(mut matrix_similar) => {
+            let last_row_idx: usize = matrix_similar.row - 1;
+            let last_col_idx: usize = matrix_similar.col - 1;
+            let matrix_size: usize = matrix_similar.row;
+            let mut last_eigenvalue: f64 = matrix_similar.entries[last_row_idx][last_col_idx];
             let mut difference: f64 = 1.0;
             let mut step: u32 = 0;
             while difference > error_thershold && step < max_iter {
-                let shift = Matrix::identity(matrix_size).multiply_scalar(&last_eigenvalue);
-                matrix_s = matrix_s.substract_Matrix(&shift).unwrap();
-                matrix_s = similar_matrix(&matrix_s)
-                    .unwrap()
+                let shift: Matrix = Matrix::identity(matrix_size).multiply_scalar(&last_eigenvalue);
+                matrix_similar = matrix_similar.substract_Matrix(&shift).unwrap();
+                matrix_similar = no_check_similar_matrix(&matrix_similar)
                     .add_Matrix(&shift)
                     .unwrap();
-                difference = (matrix_s.entries[last_row_idx][last_col_idx] - last_eigenvalue).abs();
-                last_eigenvalue = matrix_s.entries[last_row_idx][last_col_idx];
+                difference = (matrix_similar.entries[last_row_idx][last_col_idx] - last_eigenvalue).abs();
+                last_eigenvalue = matrix_similar.entries[last_row_idx][last_col_idx];
                 step += 1;
             }
 
-            Ok((matrix_s, difference))
+            Ok((matrix_similar, difference))
         }
 
         Err(error_msg) => Err(error_msg),
     }
 }
 
+/// ## NEED TO FIX
 /// ## Can not return complex eigenvalue
 /// Return a vector which contains eigenvalue of matrix and the difference.
 ///
 /// Check the difference, if it's too large, the eigenvalue may contains complex number.
-pub fn eigenvalue_with_qr(
+pub fn eigenvalue(
     matrix: &Matrix,
     max_iter: u32,
     error_thershold: f64,
@@ -81,11 +86,11 @@ pub fn eigenvalue_with_qr(
         Ok(_) => match shift_qr_algorithm(matrix, max_iter, error_thershold) {
             Err(error_msg) => Err(error_msg),
             Ok(tuple) => {
-                let matrix_s: Matrix = tuple.0;
+                let matrix_similar: Matrix = tuple.0;
                 let difference: f64 = tuple.1;
                 let mut eigenvalue: Vec<f64> = Vec::new();
-                for d in 0..matrix_s.row {
-                    eigenvalue.push(matrix_s.entries[d][d]);
+                for d in 0..matrix_similar.row {
+                    eigenvalue.push(matrix_similar.entries[d][d]);
                 }
 
                 Ok((Vector::from_vec(&eigenvalue), difference))
@@ -102,7 +107,7 @@ pub fn eigenvector(
     if matrix.row != matrix.col {
         return Err("Input Error: The input matrix is not square.".to_string());
     }
-    let eigen_kernel = Matrix::identity(matrix.row).multiply_scalar(&eigen_value).substract_Matrix(&matrix.clone()).unwrap();
-    
+
+    let eigen_kernel: Matrix = Matrix::identity(matrix.row).multiply_scalar(&eigen_value).substract_Matrix(&matrix.clone()).unwrap();
     Ok(solve::null_space(&eigen_kernel))
 }

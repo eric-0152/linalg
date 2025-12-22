@@ -83,6 +83,30 @@ impl Vector {
         }
     }
 
+    pub fn is_all_zero(self: &Self) -> bool {
+        for e in 0..self.size {
+            if self.entries[e] != 0.0 {return false;} 
+        }
+
+        true
+    }
+
+    pub fn is_all_one(self: &Self) -> bool {
+        for e in 0..self.size {
+            if self.entries[e] != 1.0 {return false;} 
+        }
+
+        true
+    }
+
+    pub fn is_any_nan(self: &Self) -> bool {
+        for e in 0..self.size {
+            if self.entries[e].is_nan() {return true;} 
+        }
+
+        false
+    }
+
     /// Return a vector contains a arithmetic sequence. [start, end)
     pub fn fixed_size_arithmetic_sequence(start: f64, end: f64, vector_size: usize) -> Vector {
         let mut result_vector: Vec<f64> = vec![start];
@@ -250,7 +274,7 @@ impl Vector {
     }
 
     /// Substract two vector element-wise.
-    pub fn substract_Vector(self: &Self, vector: Vector) -> Result<Vector, String> {
+    pub fn substract_Vector(self: &Self, vector: &Vector) -> Result<Vector, String> {
         if self.size != vector.size {
             return Err("Input Error: The size of input vector does not match.".to_string());
         }
@@ -305,7 +329,7 @@ impl Vector {
         let mut disatnce: f64 = 0.0;
 
         for s in 0..self.size {
-            disatnce += self.entries[s] * self.entries[s];
+            disatnce += self.entries[s].powi(2);
         }
 
         disatnce.sqrt()
@@ -337,5 +361,12 @@ impl Vector {
         }
 
         result_vector
+    }
+
+    pub fn sort(self: &Self) -> Vector {
+        let mut sorted_vector: Vector = self.clone();
+        sorted_vector.entries.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        sorted_vector
     }
 }

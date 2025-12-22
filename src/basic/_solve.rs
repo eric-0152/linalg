@@ -226,8 +226,9 @@ pub fn null_space(matrix: &Matrix) -> Matrix {
                 break;
             }
         }
-        if zero_num == rref.col {
-            let mut zero_vector = Vector::zeros(rref.col);
+
+        if zero_num == rref.row {
+            let mut zero_vector: Vector = Vector::zeros(rref.col);
             zero_vector.entries[c] = 1.0;
             null_basis = null_basis.append_Vector(&zero_vector, 1).unwrap();
         }

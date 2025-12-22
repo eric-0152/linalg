@@ -1,14 +1,6 @@
 use crate::matrix::Matrix;
 use crate::vector::Vector;
-use crate::{eigen, solve};
-
-/// For shift_qr_algorithm
-fn similar_matrix(matrix: &Matrix) -> Result<Matrix, String> {
-    match matrix.qr_decomposition() {
-        Err(error_msg) => Err(error_msg),
-        Ok(tuple) => Ok(tuple.1.multiply_Matrix(&tuple.0).unwrap()),
-    }
-}
+use crate::eigen;
 
 impl Matrix {
     /// Return a tuple (***L, U, P***).
@@ -158,17 +150,30 @@ impl Matrix {
     pub fn qr_decomposition(self: &Self) -> Result<(Matrix, Matrix), String> {
         match self.gram_schmidt() {
             Err(error_msg) => Err(error_msg),
-            Ok(matrix_q) => {
-                let mut matrix_r: Matrix = Matrix::zeros(self.col, self.col);
+            Ok(mut matrix_q) => {
+                let mut matrix: Matrix = self.clone();
+                let mut has_transpose: bool = false;
+                if matrix.row < matrix.col {
+                    has_transpose = true;
+                    matrix = matrix.transpose();
+                } 
+
+                let mut matrix_r: Matrix = Matrix::zeros(matrix.col, matrix.col);
                 for r in 0..matrix_r.row {
                     let orthonormal_col: Vector = matrix_q.get_column_vector(r).unwrap();
                     for c in r..matrix_r.col {
-                        matrix_r.entries[r][c] = self
+                        matrix_r.entries[r][c] = matrix
                             .get_column_vector(c)
                             .unwrap()
                             .inner_product(&orthonormal_col)
                             .unwrap();
                     }
+                }
+
+                if has_transpose {
+                    let tmp: Matrix = matrix_q.transpose();
+                    matrix_q = matrix_r.transpose();
+                    matrix_r = tmp;
                 }
 
                 Ok((matrix_q.replace_nan(), matrix_r.replace_nan()))
@@ -179,7 +184,7 @@ impl Matrix {
     /// Return the tuple ***(U, Σ, V^T)***
     pub fn singular_value_decomposition(self: &Self) -> Result<(Matrix, Matrix, Matrix), String> {
         let ata: Matrix = self.transpose().multiply_Matrix(self).unwrap();
-        match eigen::eigenvalue_with_qr(&ata, 5000, 1e-16) {
+        match eigen::eigenvalue(&ata, 1000, 1e-16) {
             Err(error_msg) => Err(error_msg),
             Ok(tuple) => {
                 // Get eigenvalue
@@ -204,6 +209,9 @@ impl Matrix {
                     }
                 }
 
+                // Build Σ
+                let sigma: Matrix = eigenvalue.square_root().to_diagonal();
+                
                 // Build U
                 let mut u: Matrix = Matrix::zeros(0, 0);
                 for r in 0..vt.row {
@@ -212,14 +220,11 @@ impl Matrix {
                             &self
                                 .multiply_Vector(&vt.get_row_vector(r).unwrap())
                                 .unwrap()
-                                .normalize(),
+                                .multiply_scalar(1.0 / sigma.entries[r][r]),
                             1,
                         )
                         .unwrap();
                 }
-
-                // Build Σ
-                let sigma: Matrix = eigenvalue.square_root().to_diagonal();
 
                 Ok((u, sigma, vt))
             }
