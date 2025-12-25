@@ -187,9 +187,9 @@ impl Matrix {
     /// &emsp; ***V^T*** : Orthornormal matrix.
     pub fn svd(self: &Self) -> Result<(Matrix, Matrix, Matrix), String> {
         let ata: Matrix = &self.transpose() * self;
-        match eigen::eigenvalue(&ata, 2000, 1e-16) {
+        match eigen::eigenvalue(&ata) {
             Err(error_msg) => Err(error_msg),
-            Ok((mut eigenvalue, _)) => {
+            Ok(mut eigenvalue) => {
                 // Get eigenvalue
                 const THERESHOLD: f64 = 1e-08;
                 for e in (0..eigenvalue.size).rev() {

@@ -1,6 +1,6 @@
 use crate::matrix::Matrix;
 use crate::vector::Vector;
-use crate::polynomial::Polynomial;
+use crate::polynomial::{self, Polynomial};
 use num_complex::Complex64;
 use crate::solve;
 
@@ -75,9 +75,13 @@ fn sub_determinant(poly_matrix: &Vec<Vec<Polynomial>>) -> Polynomial {
     
     let mut lambda_poly: Polynomial = Polynomial::zero();
     for r in 0..poly_matrix.len() {
-        let mut coefficient_poly: Polynomial = poly_matrix[r][0].clone();
+        let mut sub_coefficient: Polynomial = poly_matrix[r][0].clone();
+        if sub_coefficient.coeff == Polynomial::zero().coeff {
+            continue;
+        }
+        
         if r % 2 == 1 {
-            coefficient_poly = -1.0 * &coefficient_poly;
+            sub_coefficient = -1.0 * &sub_coefficient;
         }
         
         let mut sub_poly_matrix: Vec<Vec<Polynomial>> = poly_matrix.clone();
@@ -86,7 +90,7 @@ fn sub_determinant(poly_matrix: &Vec<Vec<Polynomial>>) -> Polynomial {
             sub_poly_matrix[c].remove(0);
         }
         
-        lambda_poly = &lambda_poly + &(&coefficient_poly * &sub_determinant(&sub_poly_matrix));
+        lambda_poly = &lambda_poly + &(&sub_coefficient * &sub_determinant(&sub_poly_matrix));
     }
 
     lambda_poly
@@ -121,26 +125,15 @@ pub fn lambda_polynomial(matrix: &Matrix) -> Polynomial {
 ///
 /// Check the difference, if it's too large, the eigenvalue may contains complex number.
 pub fn eigenvalue(
-    matrix: &Matrix,
-    max_iter: u32,
-    error_thershold: f64,
-) -> Result<(Vector, f64), String> {
-    match similar_matrix(matrix) {
-        Err(error_msg) => Err(error_msg),
-        Ok(_) => match shift_qr_algorithm(matrix, max_iter, error_thershold) {
-            Err(error_msg) => Err(error_msg),
-            Ok(tuple) => {
-                let matrix_similar: Matrix = tuple.0;
-                let error: f64 = tuple.1;
-                let mut eigenvalue: Vec<Complex64> = Vec::new();
-                for d in 0..matrix_similar.shape.0 {
-                    eigenvalue.push(matrix_similar.entries[d][d]);
-                }
-
-                Ok((Vector::new(&eigenvalue), error))
-            }
-        }
+    matrix: &Matrix
+) -> Result<Vector, String> {
+    if matrix.shape.0 != matrix.shape.1 {
+        return Err("Input Error: This matrix is not square.".to_string());
     }
+    
+    let lambda_function = lambda_polynomial(&matrix);
+    let eigenvalues = polynomial::newton_raphson(&lambda_function);
+    Ok(eigenvalues?)
 }
 
 pub fn eigenvector(

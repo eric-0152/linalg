@@ -6,6 +6,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::str::FromStr;
 
+pub fn _parse_str(str: &str) -> Result<Complex64, String> {
+    match Complex64::from_str(str) {
+        Err(error_msg) => Err(error_msg.to_string()),
+        Ok(value) => Ok(value),
+    }
+}
+
 impl Vector {
     /// The add or sub operations should be with no whitespace near.
     /// 

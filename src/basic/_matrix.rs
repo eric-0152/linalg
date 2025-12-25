@@ -2,14 +2,14 @@ use std::ops::{Add, Mul, Sub, Div};
 use rand::Rng;
 use num_complex::Complex64;
 use crate::vector::Vector;
+use std::str::FromStr;
+use crate::io;
 
 #[derive(Clone, Debug)]
 pub struct Matrix {
     pub shape: (usize, usize),
     pub entries: Vec<Vec<Complex64>>,
 }
-
-
 
 #[macro_export]
 macro_rules! to_matrix {
@@ -20,18 +20,19 @@ macro_rules! to_matrix {
         $(
             let mut row = Vec::new();
             $(
-                row.push(num_complex::Complex64::from_str(format!("{}",$e).as_str()).unwrap());
+                row.push(io::_parse_str(format!("{}", $e).as_str()).unwrap());
             )*
             rows.push(row);
         )*
 
-        Matrix::new(&rows).unwrap()
+        matrix::Matrix::new(&rows).unwrap()
     }};
 }
 
 
 impl Add<&Matrix> for &Matrix {
-    type Output = Matrix;
+    type Output = Matrix;    
+    #[inline]
     fn add(self: Self, matrix: &Matrix) -> Matrix {
         if self.shape != matrix.shape {
             panic!("Matrix shapes do not match");
@@ -51,6 +52,7 @@ impl Add<&Matrix> for &Matrix {
 
 impl Add<f64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn add(self: Self, constant: f64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -65,6 +67,7 @@ impl Add<f64> for &Matrix {
 }
 impl Add<Complex64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn add(self: Self, constant: Complex64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -79,6 +82,7 @@ impl Add<Complex64> for &Matrix {
 }
 impl Add<&Matrix> for f64 {
     type Output = Matrix;
+    #[inline]
     fn add(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -93,6 +97,7 @@ impl Add<&Matrix> for f64 {
 }
 impl Add<&Matrix> for Complex64 {
     type Output = Matrix;
+    #[inline]
     fn add(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -108,6 +113,7 @@ impl Add<&Matrix> for Complex64 {
 
 impl Sub for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn sub(self: Self, matrix: &Matrix) -> Matrix {
         if self.shape != matrix.shape {
             panic!("Matrix shapes do not match");
@@ -126,6 +132,7 @@ impl Sub for &Matrix {
 }
 impl Sub<f64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn sub(self: Self, constant: f64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -140,6 +147,7 @@ impl Sub<f64> for &Matrix {
 }
 impl Sub<Complex64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn sub(self: Self, constant: Complex64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -154,6 +162,7 @@ impl Sub<Complex64> for &Matrix {
 }
 impl Sub<&Matrix> for f64 {
     type Output = Matrix;
+    #[inline]
     fn sub(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = -1.0 * &matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -168,6 +177,7 @@ impl Sub<&Matrix> for f64 {
 }
 impl Sub<&Matrix> for Complex64 {
     type Output = Matrix;
+    #[inline]
     fn sub(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = -1.0 * &matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -183,6 +193,7 @@ impl Sub<&Matrix> for Complex64 {
 
 impl Mul<f64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn mul(self: Self, scalar: f64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -197,6 +208,7 @@ impl Mul<f64> for &Matrix {
 }
 impl Mul<Complex64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn mul(self: Self, scalar: Complex64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -211,7 +223,7 @@ impl Mul<Complex64> for &Matrix {
 }
 impl Mul<&Matrix> for f64 {
     type Output = Matrix;
-
+    #[inline]
     fn mul(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -226,7 +238,7 @@ impl Mul<&Matrix> for f64 {
 }
 impl Mul<&Matrix> for Complex64 {
     type Output = Matrix;
-
+    #[inline]
     fn mul(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -241,7 +253,7 @@ impl Mul<&Matrix> for Complex64 {
 }
 impl Mul for &Matrix {
     type Output = Matrix;
-
+    #[inline]
     fn mul(self: Self, matrix: &Matrix) -> Matrix {
         if self.shape.0 != matrix.shape.1 {
             panic!("Matrix shapes do not match");
@@ -262,6 +274,7 @@ impl Mul for &Matrix {
 }
 impl Mul<&Vector> for &Matrix {
     type Output = Vector;
+    #[inline]
     fn mul(self: Self, vector: &Vector) -> Vector {
         if self.shape.1 != vector.size {
             panic!("Matrix column and vector size do not match.");
@@ -279,6 +292,7 @@ impl Mul<&Vector> for &Matrix {
 }
 impl Div<f64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn div(self: Self, scalar: f64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -293,6 +307,7 @@ impl Div<f64> for &Matrix {
 }
 impl Div<Complex64> for &Matrix {
     type Output = Matrix;
+    #[inline]
     fn div(self: Self, scalar: Complex64) -> Matrix {
         let mut result_matrix: Matrix = self.clone();
         for r in 0..self.shape.0 {
@@ -307,7 +322,7 @@ impl Div<Complex64> for &Matrix {
 }
 impl Div<&Matrix> for f64 {
     type Output = Matrix;
-
+    #[inline]
     fn div(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -322,7 +337,7 @@ impl Div<&Matrix> for f64 {
 }
 impl Div<&Matrix> for Complex64 {
     type Output = Matrix;
-
+    #[inline]
     fn div(self: Self, matrix: &Matrix) -> Matrix {
         let mut result_matrix: Matrix = matrix.clone();
         for r in 0..matrix.shape.0 {
@@ -339,6 +354,10 @@ impl Div<&Matrix> for Complex64 {
 
 impl Matrix {
     pub fn new(double_vec: &Vec<Vec<Complex64>>) -> Result<Matrix, String> {
+        if double_vec.is_empty() {
+            return Err("Input Error: This matrix is empty.".to_string());
+        }
+        
         for r in 1..double_vec.len() {
             if double_vec[r].len() != double_vec[r - 1].len() {
                 return Err("Input Error: The vector should be same size in each row.".to_string());

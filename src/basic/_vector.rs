@@ -2,6 +2,7 @@ use std::ops::{Add, Mul, Sub, Div};
 use rand::Rng;
 use num_complex::Complex64;
 use crate::matrix::Matrix;
+use crate::io;
 
 #[derive(Clone, Debug)]
 pub struct Vector {
@@ -18,10 +19,10 @@ macro_rules! to_vector {
     ) => {{
         let mut elements = Vec::new();
         $(
-            elements.push(num_complex::Complex64::from_str(format!("{}",$e).as_str()).unwrap());
+            elements.push(io::_parse_str(format!("{}", $e).as_str()).unwrap());
         )*
 
-        Vector::new(&elements).unwrap()
+        vector::Vector::new(&elements)
     }};
 }
 
