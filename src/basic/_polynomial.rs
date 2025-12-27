@@ -1,7 +1,7 @@
 use num_complex::Complex64;
-use rand_distr::num_traits::ConstZero;
-use std::{ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}, thread::Thread};
-use crate::{multipoly::{self, MultiPoly}, vector::Vector};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use crate::multipoly::MultiPoly;
+use crate::vector::Vector;
 
 /// Coefficient of the poly is start from constant
 #[derive(Clone, Debug)]
@@ -147,27 +147,29 @@ impl Polynomial {
 
     pub fn evaluate(self: &Self, value: &Complex64) -> Complex64 {        
         let mut result: Complex64 = Complex64::new(self.coeff[0].re, self.coeff[0].im);
-        let mut power = 1.0;
+        let mut power: i32 = 1;
         for d in 1..self.coeff.len() {
-            let element: Complex64 = self.coeff[d] * value.powf(power);
+            let element: Complex64 = self.coeff[d] * value.powi(power);
             result += element;
-            power += 1.0;
+            power += 1;
         }
         
         result
     }
     
     #[inline]
-    pub fn differentiate(self: &Self) -> Polynomial {
+    pub fn derivative(self: &Self) -> Polynomial {
         let mut result_poly: Polynomial = self.clone();
-        for e in 0..self.coeff.len() - 1 {
-            result_poly.coeff[e] = (e + 1) as f64 * self.coeff[e + 1];
+        for e in 1..self.coeff.len() {
+            result_poly.coeff[e] = e as f64 * self.coeff[e];
         }
-
+        result_poly.coeff.remove(0);
+        result_poly.degree -= 1;
         result_poly
     }
 }
 
+#[inline]
 fn newton_raphson(poly: &Polynomial) -> Result<Complex64, String> {
     // Build complex form of poly.
     let x_y: MultiPoly = MultiPoly::new(vec!["x".to_string(), "y".to_string()], vec![(Complex64::ONE, vec![1.0, 0.0]), (Complex64::new(0.0, 1.0), vec![0.0, 1.0])]).unwrap();
@@ -195,38 +197,49 @@ fn newton_raphson(poly: &Polynomial) -> Result<Complex64, String> {
     let real_partial_y: MultiPoly = real_poly.partial_derivative("y".to_string()).unwrap();
     let img_partial_x: MultiPoly = img_poly.partial_derivative("x".to_string()).unwrap();
     let img_partial_y: MultiPoly = img_poly.partial_derivative("y".to_string()).unwrap();
-    let mut param = Vector::random_vector(2, -10000.0, 10000.0, false);
-    const THRESHOLD: f64 = 1e-12;
-    const MAX_ITER: u32 = 1000;
+    let mut param = Vector::random_vector(2, -1000.0, 1000.0, false);
+    const THRESHOLD: f64 = 1e-16;
+    const MAX_ITER: u32 = 10000;
     let mut learning_rate = 1.0;
-    let d_lr = (1.0 - 0.00001) / MAX_ITER as f64; 
+    let d_lr = (learning_rate - 0.1) / MAX_ITER as f64;
     let mut error: f64 = 1.0;
+    let mut last_error: f64 = 0.0;
     let mut iter: u32 = 0;
-    while error > THRESHOLD && iter < MAX_ITER {
-        let real: f64 = real_poly.evaluate(&param).unwrap().re;
-        let img: f64 = img_poly.evaluate(&param).unwrap().re;
-        let real_dx: f64 = real_partial_x.evaluate(&param).unwrap().re;
-        let real_dy: f64 = real_partial_y.evaluate(&param).unwrap().re;
-        let img_dx: f64 = img_partial_x.evaluate(&param).unwrap().re;
-        let img_dy: f64 = img_partial_y.evaluate(&param).unwrap().re;
-        let denominator: f64 = (real_dx * img_dy) - (real_dy * real_dx);
-        let dx: f64 = ((real * img_dy) - (real_dy * img)) / denominator;  
-        let dy: f64 = ((real_dx * img) - (real * img_dx)) / denominator;  
-        param.entries[0].re -= learning_rate * dx;
-        param.entries[1].re -= learning_rate * dy;
+    let mut old_param = param.clone();
+    while (error -last_error).abs() > THRESHOLD && iter < MAX_ITER {
+        let real: Complex64 = real_poly.evaluate(&param)?;
+        let img: Complex64 = img_poly.evaluate(&param)?;
+        let real_dx: Complex64 = real_partial_x.evaluate(&param)?;
+        let real_dy: Complex64 = real_partial_y.evaluate(&param)?;
+        let img_dx: Complex64 = img_partial_x.evaluate(&param)?;
+        let img_dy: Complex64 = img_partial_y.evaluate(&param)?;
+        let denominator: Complex64 = (real_dx * img_dy) - (real_dy * real_dx);
+        let dx: Complex64 = ((real * img_dy) - (real_dy * img)) / denominator;  
+        let dy: Complex64 = ((real_dx * img) - (real * img_dx)) / denominator;
+        param.entries[0] -= learning_rate * dx;
+        param.entries[1] -= learning_rate * dy;
         learning_rate -= d_lr;
-        error = (&poly.evaluate(&Complex64::new(param.entries[0].re, param.entries[1].re)).re).abs();
-        if error.is_nan() {
+        last_error = error;
+        error = (&param - &old_param).norm();
+        old_param = param.clone();
+        if error.is_nan() || error.is_infinite() {
             return Err("Failed to converge".to_string());
         }
         iter += 1;
     }
 
-    if error > THRESHOLD {
+    if (error - last_error).abs() > THRESHOLD {
         return Err("Failed to converge".to_string());
     }
-    
-    Ok(Complex64::new(param.entries[0].re, param.entries[1].re))
+
+    param.round(5).display();
+    if param.round(5).entries[0].im.abs() > THRESHOLD || param.round(5).entries[1].im.abs() > THRESHOLD {
+        println!("1");
+        Ok(Complex64::new(param.entries[0].re + param.entries[1].im, param.entries[1].re + param.entries[0].im))
+    } else {
+        println!("2");
+        Ok(Complex64::new(param.entries[0].re, param.entries[1].re))
+    }
 }
 
 /// Return a complex root using Newton-Raphson method.
@@ -234,6 +247,7 @@ pub fn find_root(poly: &Polynomial) -> Vector {
     let mut roots = Vector::new(&vec![]);
     let mut current_poly = poly.clone();
     let mut last_residual = Complex64::ZERO;
+
     while current_poly.coeff.len() > 1 {
         let find_result = newton_raphson(&current_poly);
         if find_result.is_err() {
@@ -241,15 +255,16 @@ pub fn find_root(poly: &Polynomial) -> Vector {
         }
         
         let mut new_root = find_result.unwrap();
-        if !new_root.is_infinite() && !new_root.is_nan() {
-            roots = roots.append(&Vector { size: 1, entries: vec![new_root] });
-            new_root.re = (new_root.re * 10.0_f64.powi(10)).round() / 10.0_f64.powi(10);
-            new_root.im = (new_root.im * 10.0_f64.powi(10)).round() / 10.0_f64.powi(10);
-            let (quotient, remainder) = current_poly.divide_by(&Polynomial::new(&vec![-new_root, Complex64::ONE]));
-            current_poly = quotient;
-            last_residual = remainder.coeff[0];
+        if poly.evaluate(&new_root).norm() > 1e-2 {
+            continue;
         }
-        
+
+        roots = roots.append(&Vector { size: 1, entries: vec![new_root] });
+        new_root.re = (new_root.re * 10.0_f64.powi(10)).round() / 10.0_f64.powi(10);
+        new_root.im = (new_root.im * 10.0_f64.powi(10)).round() / 10.0_f64.powi(10);
+        let (quotient, remainder) = current_poly.divide_by(&Polynomial::new(&vec![-new_root, Complex64::ONE]));
+        current_poly = quotient;
+        last_residual = remainder.coeff[0];
     }
     
     roots.entries[roots.size - 1] -= last_residual;

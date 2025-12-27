@@ -1,8 +1,7 @@
 use num_complex::Complex64;
-
 use crate::matrix::Matrix;
-use crate::eigen;
 use crate::vector::Vector;
+use crate::eigen;
 
 impl Matrix {
     /// ### *LU* Decomposition :

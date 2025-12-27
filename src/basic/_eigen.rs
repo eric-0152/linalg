@@ -1,6 +1,6 @@
 use crate::matrix::Matrix;
 use crate::vector::Vector;
-use crate::polynomial::{self, Polynomial};
+use crate::polynomial::{Polynomial, find_root};
 use num_complex::Complex64;
 use crate::solve;
 
@@ -71,8 +71,7 @@ fn sub_determinant(poly_matrix: &Vec<Vec<Polynomial>>) -> Polynomial {
     if poly_matrix.len() == 2 {
         return &(&poly_matrix[0][0] * &poly_matrix[1][1]) - &(&poly_matrix[0][1] * &poly_matrix[1][0]);
     }
-    
-    
+
     let mut lambda_poly: Polynomial = Polynomial::zero();
     for r in 0..poly_matrix.len() {
         let mut sub_coefficient: Polynomial = poly_matrix[r][0].clone();
@@ -89,7 +88,7 @@ fn sub_determinant(poly_matrix: &Vec<Vec<Polynomial>>) -> Polynomial {
         for c in 0..sub_poly_matrix.len() {
             sub_poly_matrix[c].remove(0);
         }
-        
+
         lambda_poly = &lambda_poly + &(&sub_coefficient * &sub_determinant(&sub_poly_matrix));
     }
 
@@ -116,7 +115,7 @@ pub fn lambda_polynomial(matrix: &Matrix) -> Polynomial {
         poly_matrix.push(poly_row);
     }
 
-    sub_determinant(&poly_matrix)
+    sub_determinant(&poly_matrix).remove_redundant()
 }
 
 /// Return a vector which contains eigenvalue of matrix and the difference.
@@ -128,7 +127,7 @@ pub fn eigenvalue(
     }
     
     let lambda_function = lambda_polynomial(&matrix);
-    let eigenvalues = polynomial::find_root(&lambda_function);
+    let eigenvalues = find_root(&lambda_function);
     Ok(eigenvalues)
 }
 

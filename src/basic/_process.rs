@@ -1,4 +1,5 @@
-use crate::{matrix::Matrix, vector::Vector};
+use crate::matrix::Matrix;
+use crate::vector::Vector;
 use num_complex::Complex64;
 
 impl Matrix {

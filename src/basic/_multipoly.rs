@@ -1,6 +1,5 @@
 use std::{ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}, vec};
 use num_complex::Complex64;
-
 use crate::vector::Vector;
 
 /// The coeff stores (scalar, [degree of variables])
@@ -90,6 +89,7 @@ impl MultiPoly {
         Ok(MultiPoly { names, coeff })
     }
     
+    #[inline]
     pub fn evaluate(self: &Self, value: &Vector) -> Result<Complex64, String> {
         if self.names.len() != value.size {
             return Err("Input Error: The number of names and value's size do not match.".to_string());

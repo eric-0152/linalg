@@ -1,4 +1,5 @@
-use crate::{matrix::Matrix, vector::Vector};
+use crate::matrix::Matrix;
+use crate::vector::Vector;
 
 /// ### Formula :
 /// &emsp; ***x = (A^T @ A)^-1 @ A^T @ y***
